@@ -1,0 +1,46 @@
+@inherits CaisseComponentBase
+
+<WidgetFrame Title="Utilisateurs" Class="widget--users">
+    <div class="users" role="radiogroup" aria-label="Utilisateur actif">
+        @foreach (var u in _users)
+        {
+            var on = u == _current;
+            <button type="button" role="radio" aria-checked="@(on ? "true" : "false")" class="users__item @(on ? "is-on" : null)"
+                    disabled="@(u.Length == 0)" @onclick="() => _current = u">
+                <Icon Name="user" Size="22" /> <span>@(u.Length == 0 ? "Libre" : u)</span>
+            </button>
+        }
+    </div>
+    <h3 class="widget__subtitle">Objectif</h3>
+    <div class="users__obj">
+        <label for="obj-min">MIN.</label><input id="obj-min" class="input input--right" type="number" @bind="_min" @onfocus="() => _focus = 0" />
+        <label for="obj-moy">MOY.</label><input id="obj-moy" class="input input--right" type="number" @bind="_moy" @onfocus="() => _focus = 1" />
+        <label for="obj-max">MAX.</label><input id="obj-max" class="input input--right" type="number" @bind="_max" @onfocus="() => _focus = 2" />
+    </div>
+    <div class="users__btns">
+        <button type="button" class="btn btn--sm btn--grey" @onclick="@(() => Ui.Notify($"Objectifs de {_current} : {_min} / {_moy} / {_max}"))">OK</button>
+        <button type="button" class="btn btn--sm btn--grey" @onclick="Reset">RESET</button>
+        <button type="button" class="btn btn--sm btn--plus" aria-label="Ajouter 10 au champ sélectionné" @onclick="() => Bump(10)">+10</button>
+        <button type="button" class="btn btn--sm btn--minus" aria-label="Retirer 10 au champ sélectionné" @onclick="() => Bump(-10)">-10</button>
+    </div>
+</WidgetFrame>
+
+@code {
+    private readonly string[] _users = { "USER1", "USER2", "USER3", "" };
+    private string _current = "USER1";
+    private int? _min, _moy, _max;
+    private int _focus;
+
+    private void Reset() => _min = _moy = _max = null;
+
+    // +10 / -10 s'appliquent au dernier champ qui a eu le focus (sens à confirmer avec le métier).
+    private void Bump(int delta)
+    {
+        switch (_focus)
+        {
+            case 0: _min = Math.Max(0, (_min ?? 0) + delta); break;
+            case 1: _moy = Math.Max(0, (_moy ?? 0) + delta); break;
+            default: _max = Math.Max(0, (_max ?? 0) + delta); break;
+        }
+    }
+}

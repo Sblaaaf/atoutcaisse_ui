@@ -1,0 +1,169 @@
+@inherits CaisseComponentBase
+@inject ICatalogService Catalog
+
+<div class="artsel">
+    <div class="artsel__bar">
+        <button type="button" class="btn btn--outline btn--bar @(_infoMode ? "is-on" : null)" aria-pressed="@(_infoMode ? "true" : "false")" @onclick="() => _infoMode = !_infoMode">
+            <Icon Name="circle-plus" /> Info.
+        </button>
+        <div class="artsel__qty">
+            <button type="button" class="btn btn--outline btn--bar @(_qtyOpen ? "is-on" : null)" aria-expanded="@(_qtyOpen ? "true" : "false")" @onclick="() => _qtyOpen = !_qtyOpen">
+                <Icon Name="circle-plus" /> Quantité@(_qty > 1 ? $" ×{_qty}" : "")
+            </button>
+            @if (_qtyOpen)
+            {
+                <input class="input artsel__qtyinput" type="number" min="1" max="999" aria-label="Quantité du prochain article" @bind="_qty" />
+            }
+        </div>
+        <form class="artsel__search" role="search" @onsubmit="() => { _page = 0; }">
+            <input class="input" placeholder="Recherche" aria-label="Rechercher un article" @bind="_query" @bind:event="oninput" @bind:after="ResetPage" />
+            <button type="submit" class="btn btn--primary" aria-label="Rechercher"><Icon Name="magnifying-glass" /></button>
+        </form>
+        <div class="artsel__cats" role="tablist" aria-label="Catégories">
+            @foreach (var c in VisibleCategories)
+            {
+                var on = c.Id == _category;
+                <button type="button" role="tab" aria-selected="@(on ? "true" : "false")" class="catchip @(on ? "is-on" : null)" @onclick="() => SelectCategory(c.Id)">@c.Label</button>
+            }
+        </div>
+        <div class="artsel__nav">
+            <button type="button" class="btn btn--primary btn--square" aria-label="Catégories précédentes" disabled="@(_catOffset == 0)" @onclick="() => _catOffset--"><Icon Name="angle-left" /></button>
+            <button type="button" class="btn btn--primary btn--square" aria-label="Catégories suivantes" disabled="@(_catOffset >= _categories.Count - 1)" @onclick="() => _catOffset++"><Icon Name="angle-right" /></button>
+        </div>
+    </div>
+
+    <div class="artsel__grid" role="group" aria-label="Articles">
+        @if (_folder is not null)
+        {
+            <button type="button" class="ptile ptile--back" @onclick="() => { _folder = null; _page = 0; }">
+                <span class="ptile__name"><Icon Name="angle-left" /> Retour</span>
+                <span class="ptile__sub">@_folder.Label</span>
+            </button>
+        }
+        @foreach (var f in PageFolders)
+        {
+            <button type="button" class="ptile ptile--folder" @onclick="() => OpenFolder(f)">
+                <span class="ptile__name"><Icon Name="folder" Class="ptile__folder" /> @f.Label</span>
+                <span class="ptile__sub">@f.Items.Count articles</span>
+            </button>
+        }
+        @foreach (var it in PageItems)
+        {
+            <button type="button" class="ptile ptile--@it.Color.ToString().ToLower()" @onclick="() => Add(it)">
+                <span class="ptile__name">@it.Label</span>
+                <span class="ptile__price">@Eur(it.Price)</span>
+            </button>
+        }
+        @if (!PageFolders.Any() && !PageItems.Any())
+        {
+            <p class="muted artsel__empty">Aucun article ne correspond.</p>
+        }
+    </div>
+
+    <nav class="pager" aria-label="Pagination des articles">
+        <button type="button" class="pager__link" disabled="@(_page == 0)" @onclick="() => _page--"><Icon Name="caret-left" /> Précédent</button>
+        @foreach (var p in PageNumbers)
+        {
+            if (p < 0) { <span class="pager__num pager__num--gap" aria-hidden="true">…</span> }
+            else
+            {
+                var n = p;
+                <button type="button" class="pager__num @(n == _page ? "is-on" : null)" aria-current="@(n == _page ? "page" : null)" aria-label="@($"Page {n + 1}")" @onclick="() => _page = n">@(n + 1)</button>
+            }
+        }
+        <button type="button" class="pager__link" disabled="@(_page >= PageCount - 1)" @onclick="() => _page++">Suivant <Icon Name="caret-right" /></button>
+    </nav>
+</div>
+
+@code {
+    private const int PageSize = 32; // 4 lignes × 8 colonnes, comme l'écran actuel
+
+    private IReadOnlyList<CatalogCategory> _categories = Array.Empty<CatalogCategory>();
+    private IReadOnlyList<CatalogFolder> _folders = Array.Empty<CatalogFolder>();
+    private IReadOnlyList<CatalogItem> _items = Array.Empty<CatalogItem>();
+
+    private string _category = "favoris";
+    private CatalogFolder? _folder;
+    private string _query = "";
+    private int _page;
+    private int _catOffset;
+    private bool _infoMode;
+    private bool _qtyOpen;
+    private int _qty = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await Catalog.GetCategoriesAsync();
+        _folders = await Catalog.GetFoldersAsync();
+        _items = await Catalog.GetItemsAsync();
+    }
+
+    private IEnumerable<CatalogCategory> VisibleCategories => _categories.Skip(_catOffset);
+
+    // Les dossiers ne s'affichent que dans « Favoris », hors recherche et hors dossier ouvert.
+    private IReadOnlyList<CatalogFolder> Folders =>
+        _folder is null && _query.Length == 0 && _category == "favoris" ? _folders : Array.Empty<CatalogFolder>();
+
+    private IReadOnlyList<CatalogItem> Items
+    {
+        get
+        {
+            IEnumerable<CatalogItem> q = _folder?.Items ?? (_category == "favoris" ? _items.Where(i => i.Favorite) : _items.Where(i => i.CategoryId == _category));
+            if (_query.Length > 0)
+                q = (_folder?.Items ?? _items).Where(i => i.Label.Contains(_query, StringComparison.CurrentCultureIgnoreCase));
+            return q.ToList();
+        }
+    }
+
+    private int TotalTiles => Folders.Count + Items.Count + (_folder is null ? 0 : 1);
+    private int PageCount => Math.Max(1, (int)Math.Ceiling(TotalTiles / (double)PageSize));
+
+    // Pagination commune dossiers + articles (la tuile « Retour » compte pour une place sur chaque page).
+    private int Capacity => PageSize - (_folder is null ? 0 : 1);
+    private IEnumerable<CatalogFolder> PageFolders => Folders.Skip(_page * Capacity).Take(Capacity);
+    private IEnumerable<CatalogItem> PageItems
+    {
+        get
+        {
+            var start = _page * Capacity;
+            var foldersOnPage = Math.Clamp(Folders.Count - start, 0, Capacity);
+            var itemStart = Math.Max(0, start - Folders.Count);
+            return Items.Skip(itemStart).Take(Capacity - foldersOnPage);
+        }
+    }
+
+    /// <summary>Numéros de page compacts : 1 2 … 4 (−1 = ellipse).</summary>
+    private IEnumerable<int> PageNumbers
+    {
+        get
+        {
+            var count = PageCount;
+            if (count <= 5) { for (var i = 0; i < count; i++) yield return i; yield break; }
+            var last = -2;
+            foreach (var i in new[] { 0, 1, _page - 1, _page, _page + 1, count - 1 }.Where(i => i >= 0 && i < count).Distinct().Order())
+            {
+                if (i - last > 1 && last >= 0) yield return -1;
+                yield return i;
+                last = i;
+            }
+        }
+    }
+
+    private void ResetPage() => _page = 0;
+
+    private void SelectCategory(string id) { _category = id; _folder = null; _page = 0; }
+
+    private void OpenFolder(CatalogFolder f) { _folder = f; _page = 0; }
+
+    private void Add(CatalogItem item)
+    {
+        if (_infoMode)
+        {
+            Ui.Notify($"{item.Label} – {Eur(item.Price)} (fiche article à brancher).");
+            return;
+        }
+        Ticket.Add(item, Math.Max(1, _qty));
+        _qty = 1;
+        _qtyOpen = false;
+    }
+}

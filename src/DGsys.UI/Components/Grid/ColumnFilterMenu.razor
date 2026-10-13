@@ -1,0 +1,69 @@
+@* Menu d'en-tête de colonne : tri, filtre contextuel, suppression des filtres (reprend le menu WinDev). *@
+<div class="colmenu" role="menu" aria-label="Options de la colonne @Title" @onkeydown="OnKey">
+    @if (_operator is null)
+    {
+        <button type="button" role="menuitem" class="colmenu__item" @onclick="() => OnSort.InvokeAsync(false)">Trier de A à Z</button>
+        <button type="button" role="menuitem" class="colmenu__item" @onclick="() => OnSort.InvokeAsync(true)">Trier de Z à A</button>
+        <hr />
+        <div class="colmenu__group" id="ctx-@Id">Filtre contextuel</div>
+        @foreach (var op in Operators)
+        {
+            <button type="button" role="menuitem" class="colmenu__item colmenu__item--sub @(Current?.Operator == op ? "is-active" : null)"
+                    @onclick="() => Choose(op)">
+                @ColumnFilter.Label(op)
+            </button>
+        }
+        <hr />
+        <button type="button" role="menuitem" class="colmenu__item" disabled="@(Current is null)" @onclick="() => OnApply.InvokeAsync(null)">Supprimer filtres</button>
+    }
+    else
+    {
+        <form class="colmenu__cond" @onsubmit="Apply">
+            <label class="colmenu__label" for="cond-@Id">Afficher les lignes : <strong>@ColumnFilter.Label(_operator.Value)</strong></label>
+            <input id="cond-@Id" class="input" @bind="_value" @bind:event="oninput" autocomplete="off" @ref="_input" />
+            <div class="colmenu__actions">
+                <button type="button" class="btn btn--ghost btn--sm" @onclick="OnClose">Annuler</button>
+                <button type="submit" class="btn btn--primary btn--sm">Valider</button>
+            </div>
+        </form>
+    }
+</div>
+
+@code {
+    private static readonly FilterOperator[] Operators =
+    {
+        FilterOperator.Equals, FilterOperator.NotEquals, FilterOperator.StartsWith, FilterOperator.EndsWith,
+        FilterOperator.Contains, FilterOperator.NotContains, FilterOperator.LessOrEqual, FilterOperator.GreaterOrEqual,
+    };
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter, EditorRequired] public string Id { get; set; } = "";
+    [Parameter] public ColumnFilter? Current { get; set; }
+    [Parameter] public EventCallback<bool> OnSort { get; set; }
+    [Parameter] public EventCallback<ColumnFilter?> OnApply { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private FilterOperator? _operator;
+    private string _value = "";
+    private ElementReference _input;
+
+    private void Choose(FilterOperator op)
+    {
+        _operator = op;
+        _value = Current?.Operator == op ? Current.Value : "";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_operator is not null && !_focused) { _focused = true; await _input.FocusAsync(); }
+        if (_operator is null) _focused = false;
+    }
+    private bool _focused;
+
+    private Task Apply() => OnApply.InvokeAsync(new ColumnFilter(_operator!.Value, _value));
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") await OnClose.InvokeAsync();
+    }
+}

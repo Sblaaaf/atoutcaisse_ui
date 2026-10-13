@@ -1,0 +1,42 @@
+@inherits CaisseComponentBase
+
+<WidgetFrame Title="Actions" Class="widget--actions">
+    <div class="tiles tiles--3">
+        <button type="button" class="tile" disabled="@(Ticket.Current is null)" @onclick="@(() => Ui.Notify($"Détails : {Ticket.Current?.Item.Label}"))"><Icon Name="circle-info" Size="20" /><span>Détails</span></button>
+        <button type="button" class="tile" disabled="@(Ticket.Current is null)" @onclick="Ticket.DuplicateCurrent"><Icon Name="copy" Size="20" /><span>Dupliquer</span></button>
+        <button type="button" class="tile tile--danger" disabled="@(Ticket.Current is null)" @onclick="Ticket.RemoveCurrent"><Icon Name="trash-can" Size="20" /><span>ARTICLE</span></button>
+        <button type="button" class="tile" disabled="@(Ticket.Current is null)" @onclick="Discount"><Icon Name="percent" Size="20" /><span>Remise</span></button>
+        <button type="button" class="tile" disabled="@(Ticket.Current is null)" @onclick="@(() => Ui.Notify("Modification de ligne : à brancher."))"><Icon Name="pen" Size="20" /><span>Modifier</span></button>
+        <button type="button" class="tile tile--danger" disabled="@(Ticket.Lines.Count == 0)" @onclick="ClearTicket"><Icon Name="trash-can" Size="20" /><span>TICKET</span></button>
+    </div>
+    <h3 class="widget__subtitle">Règlements rapides</h3>
+    <div class="tiles tiles--3">
+        @foreach (var m in QuickMethods)
+        {
+            <button type="button" class="tile tile--pay" disabled="@(Ticket.Remaining <= 0)" @onclick="() => Pay(m)"><Icon Name="credit-card" Size="20" /><span>@m</span></button>
+        }
+    </div>
+</WidgetFrame>
+
+@code {
+    private static readonly string[] QuickMethods = { "CB", "EN COURS", "Chèque", "Espèces", "Titres Resto", "Avoir" };
+
+    private void Discount()
+    {
+        // Remise rapide de 10 % ; le choix du taux sera un écran dédié.
+        Ticket.DiscountCurrent(10);
+        Ui.Notify("Remise de 10 % appliquée sur la ligne.");
+    }
+
+    private void ClearTicket()
+    {
+        Ticket.Clear();
+        Ui.Notify("Ticket annulé.");
+    }
+
+    private void Pay(string method)
+    {
+        var p = Ticket.Pay(method);
+        if (p is not null) Ui.Notify($"Règlement {method} : {Eur(p.Amount)}. Validez dans l'onglet Règlement.");
+    }
+}

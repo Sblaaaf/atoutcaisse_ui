@@ -1,0 +1,82 @@
+@page "/articles"
+@inject IArticleService Articles
+
+<PageTitle>Gestion Articles – DGsys</PageTitle>
+<PageHeader Title="Gestion Articles" Subtitle="Espace dédié à la gestion globale des articles, stock, ..." />
+
+<div class="home-grid home-grid--articles">
+    <Card Title="Listes">
+        <FeatureLink Label="Fournisseur" Href="/articles/fournisseurs" Icon="truck" />
+        <FeatureLink Label="Produits Achetés" Href="/articles/achetes" Icon="box" />
+        <FeatureLink Label="Produits Vendus" Href="/articles/vendus" Icon="basket-shopping" />
+    </Card>
+    <Card Title="Fonctionnalités">
+        <FeatureLink Label="Inventaire" Href="/articles/inventaire" Icon="clipboard-list" />
+        <FeatureLink Label="Statistiques" Href="/articles/statistiques" Icon="chart-pie" />
+        <FeatureLink Label="Impression étiquettes" Href="/articles/etiquettes" Icon="barcode" Highlighted="true" />
+    </Card>
+    <Card Title="Configurations">
+        <FeatureLink Label="Modèle de variant" Href="/articles/variants" Icon="table-cells-large" />
+        <FeatureLink Label="Référence fournisseur" Href="/articles/references" Icon="list-check" />
+        <FeatureLink Label="Info supplémentaire" Href="/articles/infos" Icon="circle-exclamation" />
+    </Card>
+</div>
+
+<Card Title="Suivi des commandes" Class="card--spaced">
+    @if (_orders is not null)
+    {
+        <ol class="pipeline" aria-label="Étapes du suivi des commandes">
+            <li class="pipeline__step">
+                <a href="/articles/propositions" class="pipeline__node" aria-label="Proposition"><Icon Name="file-pen" Size="40" /></a>
+                <span class="pipeline__label">PROPOSITION</span>
+            </li>
+            <li class="pipeline__step pipeline__step--middle">
+                <ul class="pipeline__pills" aria-label="État des commandes">
+                    <li class="pill pill--danger"><Icon Name="circle-check" Size="22" /> Non livrée : @_orders.NonLivrees</li>
+                    <li class="pill pill--warn"><Icon Name="circle-exclamation" Size="22" /> Partielle : @_orders.Partielles</li>
+                    <li class="pill pill--dark"><Icon Name="triangle-exclamation" Size="22" /> Retard : @_orders.EnRetard</li>
+                </ul>
+                <a href="/articles/commandes" class="pipeline__node" aria-label="Commande"><Icon Name="magnifying-glass" Size="40" /></a>
+                <span class="pipeline__label">COMMANDE</span>
+            </li>
+            <li class="pipeline__step">
+                <a href="/articles/bons-livraison" class="pipeline__node" aria-label="Bon de livraison"><Icon Name="envelope-circle-check" Size="40" /></a>
+                <span class="pipeline__label">BON DE LIVRAISON</span>
+            </li>
+        </ol>
+    }
+</Card>
+
+<Card Title="État du stock des articles" Class="card--spaced">
+    @if (_stock is not null)
+    {
+        <div class="stock">
+            <fieldset class="fieldset stock__managed">
+                <legend>Articles gérés en stock (seuil)</legend>
+                <ul class="stock__list">
+                    <li class="stat"><span class="stat__dot stat__dot--ok"><Icon Name="check" Size="26" /></span><span class="stat__value">@_stock.Ok</span><span class="visually-hidden">articles en stock suffisant</span></li>
+                    <li class="stat stat--sep"><span class="stat__cap">SURVEILLANCE</span><span class="stat__dot stat__dot--watch"><Icon Name="circle-exclamation" Size="26" /></span><span class="stat__value">@_stock.Surveillance</span></li>
+                    <li class="stat"><span class="stat__cap">APPROVISIONNEMENT</span><span class="stat__dot stat__dot--supply"><Icon Name="circle-exclamation" Size="26" /></span><span class="stat__value">@_stock.Approvisionnement</span></li>
+                    <li class="stat"><span class="stat__cap">URGENT</span><span class="stat__dot stat__dot--urgent"><Icon Name="circle-exclamation" Size="26" /></span><span class="stat__value">@_stock.Urgent</span></li>
+                </ul>
+            </fieldset>
+            <fieldset class="fieldset stock__unmanaged">
+                <legend>Articles NON gérés en stock</legend>
+                <ul class="stock__list">
+                    <li class="stat"><span class="stat__dot stat__dot--off"><Icon Name="xmark" Size="26" /></span><span class="stat__value">@_stock.NonGeres</span></li>
+                </ul>
+            </fieldset>
+        </div>
+    }
+</Card>
+
+@code {
+    private OrderTracking? _orders;
+    private StockSummary? _stock;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _orders = await Articles.GetOrderTrackingAsync();
+        _stock = await Articles.GetStockSummaryAsync();
+    }
+}

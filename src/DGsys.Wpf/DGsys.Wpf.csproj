@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>DGsys.Wpf</RootNamespace>
+    <!-- Permet de compiler (pas d'exécuter) depuis Linux/CI. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="8.0.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DGsys.UI\DGsys.UI.csproj" />
+  </ItemGroup>
+</Project>

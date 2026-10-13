@@ -1,0 +1,25 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject CaisseUiState Ui
+
+@* Layout plein écran de l'encaissement : pas de menu latéral, un rail + volet coulissant à gauche. *@
+<div class="pos-shell">
+    <CaisseTopBar />
+    <SideDrawer />
+    <main class="pos-main" id="main">
+        @Body
+    </main>
+    @if (Ui.Message is not null)
+    {
+        <div class="toast" role="status">
+            <span>@Ui.Message</span>
+            <button type="button" class="toast__close" aria-label="Fermer le message" @onclick="Ui.ClearMessage"><Icon Name="xmark" /></button>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Ui.Changed += Refresh;
+    private void Refresh() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Ui.Changed -= Refresh;
+}

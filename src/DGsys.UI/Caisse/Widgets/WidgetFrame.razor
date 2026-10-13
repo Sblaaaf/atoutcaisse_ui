@@ -1,0 +1,19 @@
+@* Cadre commun des widgets de caisse. La poignée ⋮⋮ prépare le futur glisser-déposer. *@
+<section class="widget @Class" aria-label="@Title">
+    @if (Header is not null || ShowTitle)
+    {
+        <header class="widget__head">
+            @if (Header is not null) { @Header } else { <h2 class="widget__title">@Title</h2> }
+        </header>
+    }
+    <span class="widget__grip" aria-hidden="true" title="Déplacer (bientôt)"><Icon Name="grip-vertical" Size="16" /></span>
+    <div class="widget__body">@ChildContent</div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public bool ShowTitle { get; set; } = true;
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? Header { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

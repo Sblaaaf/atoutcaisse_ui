@@ -1,0 +1,16 @@
+@* Champ montant en euros : <input type=number> + suffixe « € » (valeur décimale, 2 décimales). *@
+<span class="money">
+    <input class="input input--money" type="number" min="0" step="0.01" inputmode="decimal"
+           aria-label="@Label" value="@Value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)" @onchange="OnChange" />
+    <span class="money__unit" aria-hidden="true">€</span>
+</span>
+
+@code {
+    [Parameter] public decimal Value { get; set; }
+    [Parameter] public EventCallback<decimal> ValueChanged { get; set; }
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    private Task OnChange(ChangeEventArgs e)
+        => ValueChanged.InvokeAsync(decimal.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Number,
+               System.Globalization.CultureInfo.InvariantCulture, out var v) ? Math.Max(0, v) : 0);
+}

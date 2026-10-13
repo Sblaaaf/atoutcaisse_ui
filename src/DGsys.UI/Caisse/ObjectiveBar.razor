@@ -1,0 +1,65 @@
+@inherits CaisseComponentBase
+@inject IObjectifsService Objectifs
+
+@* Barre d'objectif du jour, alimentée par la configuration « Objectifs » (seuils + textes des pop-up). *@
+@if (_s is { ObjectifVisuelActif: true } && _day is not null)
+{
+    <div class="objbar">
+        <span class="objbar__label">OBJECTIF</span>
+        @if (_s.AfficherBarre)
+        {
+            <div class="objbar__track" role="meter" aria-label="Objectif du jour" aria-valuemin="0" aria-valuemax="@_day.Haut" aria-valuenow="@Ui.DailyRevenue"
+                 aria-valuetext="@Eur(Ui.DailyRevenue)">
+                <span class="objbar__seg objbar__seg--low" style="@Width(0, _day.Bas)"></span>
+                <span class="objbar__seg objbar__seg--mid" style="@Width(_day.Bas, _day.Moyen)"></span>
+                <span class="objbar__seg objbar__seg--high" style="@Width(_day.Moyen, _day.Haut)"></span>
+                <span class="objbar__fill" style="@($"width:{Pct(Ui.DailyRevenue)}%")"></span>
+            </div>
+        }
+        <span class="objbar__value">@(_s.AfficherValeursMonetaires ? Eur(Ui.DailyRevenue) : "")</span>
+        <output class="objbar__box">@(_s.AfficherValeursMonetaires ? Eur(_day.Haut) : "")</output>
+    </div>
+}
+
+@if (_popup is not null)
+{
+    <Dialog Title="Objectif atteint" Width="min(520px, 92vw)" OnClose="() => _popup = null">
+        <div class="objpopup">
+            <p>@_popup</p>
+            <button type="button" class="btn btn--primary btn--footer" @onclick="() => _popup = null">OK</button>
+        </div>
+    </Dialog>
+}
+
+@code {
+    private ObjectifsSettings? _s;
+    private ObjectifJour? _day;
+    private decimal _lastRevenue;
+    private string? _popup;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _s = await Objectifs.GetAsync();
+        var jour = CultureInfo.GetCultureInfo("fr-FR").DateTimeFormat.GetDayName(DateTime.Now.DayOfWeek);
+        _day = _s.Jours.FirstOrDefault(j => string.Equals(j.Jour, jour, StringComparison.CurrentCultureIgnoreCase)) ?? _s.Jours.FirstOrDefault();
+        _lastRevenue = Ui.DailyRevenue;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // Détection du franchissement d'un seuil depuis le dernier rendu → pop-up configuré.
+        if (_s is null || _day is null || Ui.DailyRevenue == _lastRevenue) return;
+        var before = _lastRevenue; var now = Ui.DailyRevenue;
+        _lastRevenue = now;
+        string? text = null;
+        if (_s.PopupHaut && before < _day.Haut && now >= _day.Haut) text = _s.TexteHaut;
+        else if (_s.PopupMoyen && before < _day.Moyen && now >= _day.Moyen) text = _s.TexteMoyen;
+        else if (_s.PopupBas && before < _day.Bas && now >= _day.Bas) text = _s.TexteBas;
+        if (text is not null) { _popup = text; StateHasChanged(); }
+    }
+
+    private decimal Scale => _day is null || _day.Haut <= 0 ? 1 : _day.Haut * 1.25m;
+    private decimal Pct(decimal v) => Math.Clamp(v / Scale * 100m, 0, 100);
+    private string Width(decimal from, decimal to) =>
+        string.Create(CultureInfo.InvariantCulture, $"width:{Pct(to) - Pct(from):0.##}%");
+}

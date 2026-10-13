@@ -1,0 +1,11 @@
+<section class="card @Class" aria-labelledby="@_id">
+    <h2 class="card__title" id="@_id">@Title</h2>
+    <div class="card__body">@ChildContent</div>
+</section>
+
+@code {
+    private readonly string _id = "card-" + Guid.NewGuid().ToString("N")[..8];
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

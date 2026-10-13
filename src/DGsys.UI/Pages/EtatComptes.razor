@@ -1,0 +1,124 @@
+@page "/clients/etat-comptes"
+@inject NavigationManager Nav
+@inject IClientService Clients
+
+<PageTitle>État daté des comptes clients – DGsys</PageTitle>
+
+@* Page d'arrière-plan visible derrière la fenêtre, comme dans l'application WinDev. *@
+<ClientsHome />
+
+<Dialog Title="Etat Daté des comptes clients" Width="min(1060px, 94vw)" Class="dialog--tall" OnClose="Close">
+    <div class="etat">
+        <div class="etat__main">
+            <DgGrid T="ClientRow" Columns="_cols" Items="_clients" Footer="GridFooter.Sum | GridFooter.Average"
+                    AriaLabel="Comptes clients" Class="grid--fill" />
+            <div class="etat__bar">
+                <button type="button" class="btn btn--tile btn--wide" @onclick="Close">Retour</button>
+                <button type="button" class="btn btn--tile btn--wide" @onclick="ShowGraph">
+                    <Icon Name="chart-simple" Size="22" /> Graphique
+                </button>
+            </div>
+        </div>
+
+        <button type="button" class="etat__toggle" aria-expanded="@_filterOpen" aria-controls="etat-filter"
+                aria-label="@(_filterOpen ? "Masquer le filtrage" : "Afficher le filtrage")" @onclick="() => _filterOpen = !_filterOpen">
+            <Icon Name="@(_filterOpen ? "angles-right" : "angles-left")" Size="26" />
+        </button>
+
+        @if (_filterOpen)
+        {
+            <aside class="etat__filter" id="etat-filter" aria-labelledby="etat-filter-title">
+                <h3 id="etat-filter-title" class="etat__filter-title">Filtrage</h3>
+
+                <fieldset class="fieldset">
+                    <legend>Gestion Sauvegarde</legend>
+                    <div class="field-row">
+                        <label for="modele">Modèle Recherche</label>
+                        <select id="modele" class="input" @bind="_filter.Modele">
+                            @foreach (var m in _models) { <option value="@m">@m</option> }
+                        </select>
+                    </div>
+                    <div class="icon-row">
+                        <button type="button" class="btn btn--icon" aria-label="Enregistrer le modèle" @onclick="SaveModel"><Icon Name="floppy-disk" Size="24" /></button>
+                        <button type="button" class="btn btn--icon" aria-label="Recharger le modèle" @onclick="ReloadModel"><Icon Name="rotate" Size="24" /></button>
+                        <button type="button" class="btn btn--icon btn--danger" aria-label="Supprimer le modèle" @onclick="DeleteModel"><Icon Name="trash-can" Size="24" /></button>
+                        <button type="button" class="btn btn--icon" aria-label="Réinitialiser le filtrage" @onclick="Reset"><Icon Name="ban" Size="24" /></button>
+                    </div>
+                </fieldset>
+
+                <fieldset class="fieldset">
+                    <legend>Filtrage par dates</legend>
+                    <div class="field-row field-row--check">
+                        <Check @bind-Value="_filter.FiltrerDateDebut" Label="Date de début :" />
+                        <input class="input" type="datetime-local" step="1" aria-label="Date de début" @bind="_filter.DateDebut" disabled="@(!_filter.FiltrerDateDebut)" />
+                    </div>
+                    <div class="field-row field-row--check">
+                        <Check @bind-Value="_filter.FiltrerDateFin" Label="Date de fin :" />
+                        <input class="input" type="datetime-local" step="1" aria-label="Date de fin" @bind="_filter.DateFin" disabled="@(!_filter.FiltrerDateFin)" />
+                    </div>
+                </fieldset>
+
+                <fieldset class="fieldset">
+                    <legend>Filtrage par clôtures</legend>
+                    <div class="field-row field-row--check">
+                        <Check @bind-Value="_filter.FiltrerClotureDebut" Label="Id clôture début :" />
+                        <input class="input" aria-label="Id clôture début" inputmode="numeric" @bind="_filter.IdClotureDebut" disabled="@(!_filter.FiltrerClotureDebut)" />
+                    </div>
+                    <div class="field-row field-row--check">
+                        <Check @bind-Value="_filter.FiltrerClotureFin" Label="Id clôture fin :" />
+                        <input class="input" aria-label="Id clôture fin" inputmode="numeric" @bind="_filter.IdClotureFin" disabled="@(!_filter.FiltrerClotureFin)" />
+                    </div>
+                </fieldset>
+
+                <div class="etat__filter-foot">
+                    <button type="button" class="btn btn--tile btn--wide" @onclick="Generate"><Icon Name="upload" Size="22" /> Générer Statistiques</button>
+                </div>
+            </aside>
+        }
+    </div>
+    @if (_status is not null)
+    {
+        <p class="status status--dialog" role="status">@_status</p>
+    }
+</Dialog>
+
+@code {
+    private IReadOnlyList<ClientRow> _clients = Array.Empty<ClientRow>();
+    private IReadOnlyList<string> _models = Array.Empty<string>();
+    private readonly EtatComptesFilter _filter = new() { DateDebut = new DateTime(2024, 1, 1, 12, 0, 0), FiltrerDateDebut = true };
+    private bool _filterOpen = true;
+    private string? _status;
+
+    private readonly IReadOnlyList<GridColumn<ClientRow>> _cols = new GridColumn<ClientRow>[]
+    {
+        new() { Key = "id", Title = "ID Client", Value = c => c.Id, Align = GridAlign.Right, Width = "6.5rem" },
+        new() { Key = "code", Title = "Code Client", Value = c => c.Code, Width = "7.5rem" },
+        new() { Key = "civ", Title = "Civilité", Value = c => c.Civilite, Width = "5.5rem" },
+        new() { Key = "nom", Title = "Nom", Value = c => c.Nom },
+        new() { Key = "prenom", Title = "Prénom", Value = c => c.Prenom },
+        new() { Key = "societe", Title = "Société", Value = c => c.Societe },
+        new() { Key = "pseudo", Title = "Pseudo", Value = c => c.Pseudo },
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clients = await Clients.GetClientsAsync();
+        _models = await Clients.GetEtatComptesModelesAsync();
+        _filter.Modele = _models.FirstOrDefault() ?? "";
+    }
+
+    private void Reset()
+    {
+        _filter.FiltrerDateDebut = _filter.FiltrerDateFin = _filter.FiltrerClotureDebut = _filter.FiltrerClotureFin = false;
+        _filter.DateDebut = _filter.DateFin = null;
+        _filter.IdClotureDebut = _filter.IdClotureFin = null;
+        _status = "Filtrage réinitialisé.";
+    }
+
+    private void ShowGraph() => _status = "Graphique : écran à brancher.";
+    private void SaveModel() => _status = $"Modèle « {_filter.Modele} » enregistré (à brancher).";
+    private void ReloadModel() => _status = $"Modèle « {_filter.Modele} » rechargé (à brancher).";
+    private void DeleteModel() => _status = $"Modèle « {_filter.Modele} » supprimé (à brancher).";
+    private void Generate() => _status = "Génération des statistiques (à brancher).";
+    private void Close() => Nav.NavigateTo("/clients");
+}

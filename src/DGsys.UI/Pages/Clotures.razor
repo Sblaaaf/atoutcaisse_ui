@@ -1,0 +1,98 @@
+@page "/caisse/clotures"
+@inject NavigationManager Nav
+@inject IClotureService Service
+
+<PageTitle>Clôtures – DGsys</PageTitle>
+<ModuleHome />
+
+<Dialog Title="Liste des clôtures à re-imprimer" Width="min(980px, 96vw)" OnClose="Close">
+    <div class="clot">
+        <TabStrip Class="tabstrip--pills" Tabs="_tabs" Selected="_tab" SelectedChanged="SelectTab" AriaLabel="Type de clôture" Id="clot" />
+
+        <div class="clot__main">
+            @if (_kind == ClotureKind.ValidationPointsDeVente)
+            {
+                <p class="clot__empty">La validation des points de vente sera migrée dans une prochaine étape.</p>
+            }
+            else
+            {
+                <DgGrid T="Cloture" Columns="_cols" Items="_rows" AriaLabel="Liste des clôtures" Class="grid--fill"
+                        @bind-Selected="_selected" />
+            }
+
+            <div class="clot__actions">
+                <button type="button" class="btn btn--tile" disabled="@(_selected is null)" @onclick="@(() => Do("Impression de la clôture"))"><Icon Name="print" Size="24" /><span>LA clôture</span></button>
+                <button type="button" class="btn btn--tile" disabled="@(_selected is null)" @onclick="@(() => Do("Statistiques de la clôture"))"><Icon Name="chart-simple" Size="24" /><span>Statistiques de <b>LA clôture</b></span></button>
+                <button type="button" class="btn btn--tile" disabled="@(_selected is null)" @onclick="@(() => Do("Archivage de la clôture"))"><Icon Name="rotate" Size="24" /><span>ARCHIVE de <b>LA clôture</b></span></button>
+                <button type="button" class="btn btn--tile" disabled="@(_selected is null)" @onclick="@(() => Do("Export de la clôture"))"><Icon Name="rotate" Size="24" /><span>EXPORT de <b>LA clôture</b></span></button>
+            </div>
+        </div>
+
+        <fieldset class="fieldset clot__multi">
+            <legend>MULTI-CLÔTURE</legend>
+            <div class="clot__range">
+                <div class="field-row">
+                    <label for="clot-from">N° clôture départ</label>
+                    <input id="clot-from" class="input input--right" type="number" min="0" @bind="_from" />
+                </div>
+                <div class="field-row">
+                    <label for="clot-to">N° clôture fin</label>
+                    <input id="clot-to" class="input input--right" type="number" min="0" @bind="_to" />
+                </div>
+            </div>
+            <button type="button" class="btn btn--tile" disabled="@(!RangeValid)" @onclick="@(() => Do("Récapitulatif des clôtures"))"><Icon Name="print" Size="24" /><span>RECAPITULATIF <b>DES clôtures</b></span></button>
+            <button type="button" class="btn btn--tile" disabled="@(!RangeValid)" @onclick="@(() => Do("Impression de chaque clôture"))"><Icon Name="print" Size="24" /><span>CHACUNE <b>DES clôtures</b></span></button>
+            <button type="button" class="btn btn--tile" disabled="@(!RangeValid)" @onclick="@(() => Do("Statistiques des clôtures"))"><Icon Name="chart-simple" Size="24" /><span>Statistiques <b>DES clôtures</b></span></button>
+            <span class="clot__arrow" aria-hidden="true"><Icon Name="chevron-left" Size="22" /></span>
+            <button type="button" class="btn btn--tile" disabled="@(!RangeValid)" @onclick="@(() => Do("Archivage des clôtures"))"><Icon Name="rotate" Size="24" /><span>ARCHIVE <b>DES clôtures</b></span></button>
+            <button type="button" class="btn btn--tile" disabled="@(!RangeValid)" @onclick="@(() => Do("Export des clôtures"))"><Icon Name="rotate" Size="24" /><span>EXPORT <b>DES clôtures</b></span></button>
+        </fieldset>
+
+        <div class="clot__foot">
+            <button type="button" class="btn btn--outline btn--footer" @onclick="Close">Annuler</button>
+            @if (_status is not null) { <span class="status" role="status">@_status</span> }
+            <span class="legend"><Icon Name="print" Size="20" /> : IMPRIMER</span>
+            <span class="legend"><Icon Name="rotate" Size="20" /> : REGENERER</span>
+        </div>
+    </div>
+</Dialog>
+
+@code {
+    private static readonly string[] _tabs = { "Clôtures journalières", "Clôtures mensuelles", "Clôtures annuelles", "Validation des points de vente" };
+    private static readonly ClotureKind[] _kinds = { ClotureKind.Journaliere, ClotureKind.Mensuelle, ClotureKind.Annuelle, ClotureKind.ValidationPointsDeVente };
+
+    private int _tab;
+    private ClotureKind _kind = ClotureKind.Journaliere;
+    private IReadOnlyList<Cloture> _rows = Array.Empty<Cloture>();
+    private Cloture? _selected;
+    private int _from, _to;
+    private string? _status;
+
+    private bool RangeValid => _from > 0 && _to >= _from;
+
+    private readonly IReadOnlyList<GridColumn<Cloture>> _cols = new GridColumn<Cloture>[]
+    {
+        new() { Key = "num", Title = "N°", Value = c => c.Numero, Align = GridAlign.Right, Width = "5rem" },
+        new() { Key = "date", Title = "Date", Value = c => c.Date, Format = "dd/MM/yyyy", Align = GridAlign.Right, Width = "8rem" },
+        new() { Key = "debut", Title = "Début", Value = c => c.Debut, Format = "dd/MM/yyyy HH:mm", Align = GridAlign.Right },
+        new() { Key = "fin", Title = "Fin", Value = c => c.Fin, Format = "dd/MM/yyyy HH:mm", Align = GridAlign.Right },
+        new() { Key = "mens", Title = "ID clôture mensuelle", Value = c => c.IdClotureMensuelle, Align = GridAlign.Right },
+    };
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task SelectTab(int i)
+    {
+        _tab = i;
+        _kind = _kinds[i];
+        _selected = null;
+        await Load();
+    }
+
+    private async Task Load() => _rows = _kind == ClotureKind.ValidationPointsDeVente
+        ? Array.Empty<Cloture>()
+        : await Service.GetAsync(_kind);
+
+    private void Do(string action) => _status = $"{action} — à brancher sur le module d'impression/export.";
+    private void Close() => Nav.NavigateTo("/caisse");
+}

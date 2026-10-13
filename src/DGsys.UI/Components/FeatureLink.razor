@@ -1,0 +1,12 @@
+<a class="feature-link @(Highlighted ? "is-highlighted" : null)" href="@Href">
+    <Icon Name="@Icon" Size="26" />
+    <span class="feature-link__label">@Label</span>
+    <Icon Name="chevron-right" Class="feature-link__chevron" />
+</a>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter, EditorRequired] public string Href { get; set; } = "#";
+    [Parameter, EditorRequired] public string Icon { get; set; } = "dot";
+    [Parameter] public bool Highlighted { get; set; }
+}

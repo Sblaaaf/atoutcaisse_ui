@@ -1,0 +1,43 @@
+@page "/caisse/encaissement"
+@layout CaisseLayout
+@inherits CaisseComponentBase
+@inject ICaisseLayoutService LayoutService
+
+<PageTitle>Encaissement – DGsys</PageTitle>
+<h1 class="visually-hidden" tabindex="-1">Encaissement</h1>
+
+<div class="pos">
+    <ObjectiveBar />
+
+    @if (_layout is not null)
+    {
+        <div class="pos__top" style="@Columns">
+            @foreach (var slot in _layout.TopRow)
+            {
+                @if (CaisseWidgets.Registry.TryGetValue(slot.Key, out var type))
+                {
+                    <DynamicComponent Type="type" @key="slot.Key" />
+                }
+            }
+        </div>
+    }
+
+    <TabStrip Class="tabstrip--pos" Tabs="_tabs" @bind-Selected="_tab" AriaLabel="Encaissement" Id="pos" />
+    <div class="pos__zone" role="tabpanel" aria-labelledby="tab-pos-@_tab">
+        @if (_tab == 0) { <ArticleSelection /> } else { <PaymentZone /> }
+    </div>
+</div>
+
+@code {
+    private static readonly string[] _tabs = { "SÉLECTION D'ARTICLES", "RÈGLEMENT" };
+    private int _tab;
+    private CaisseLayoutConfig? _layout;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _layout = await LayoutService.GetAsync();
+    }
+
+    private string Columns => "grid-template-columns:" + string.Join(' ',
+        _layout!.TopRow.Select(s => s.Width.ToString("0.##", CultureInfo.InvariantCulture) + "fr"));
+}

@@ -1,0 +1,10 @@
+@* Icône Font Awesome 6 Free – Solid (police locale, fonctionne hors-ligne).
+   Name = nom FA sans préfixe : "house", "user", "cash-register"… → https://fontawesome.com/search?o=r&s=solid&f=classic *@
+<i class="fa-solid fa-@Name icon @Class" style="font-size:@(Size)px" aria-hidden="true" @attributes="Attributes"></i>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = "circle";
+    [Parameter] public int Size { get; set; } = 18;
+    [Parameter] public string? Class { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? Attributes { get; set; }
+}

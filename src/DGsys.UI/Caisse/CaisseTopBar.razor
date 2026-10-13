@@ -1,0 +1,46 @@
+@inject IWindowHost Window
+
+<header class="topbar topbar--pos">
+    <div class="topbar__brand">
+        <svg class="topbar__logo" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="2" y="2" width="28" height="28" rx="4" fill="#fff" />
+            <rect x="6" y="6" width="20" height="20" rx="2" fill="#2b3467" />
+            <rect x="10" y="10" width="12" height="12" rx="1" fill="#6f7bd6" />
+        </svg>
+        <span class="topbar__name">DGsys</span>
+        <a class="topbar__link" href="/dashboard"><Icon Name="chart-simple" /> Accueil</a>
+        <a class="topbar__link" href="/configuration"><Icon Name="gear" /> Configuration</a>
+        <a class="topbar__link" href="/configuration/maintenance"><Icon Name="screwdriver-wrench" /> Maintenance</a>
+    </div>
+
+    <div class="topbar__actions">
+        <label class="topbar__select">
+            <span>Caisse :</span>
+            <select @bind="_caisse" aria-label="Caisse">
+                <option value="1">Caisse 1</option>
+                <option value="2">Caisse 2</option>
+            </select>
+        </label>
+        <label class="topbar__select">
+            <span>User :</span>
+            <select @bind="_user" aria-label="Utilisateur">
+                <option>USER1</option>
+                <option>USER2</option>
+                <option>USER3</option>
+            </select>
+        </label>
+        <span class="topbar__sep" aria-hidden="true"></span>
+        <a class="topbar__link" href="/compte"><Icon Name="user" /> Mon compte</a>
+        @if (Window.IsAvailable)
+        {
+            <button type="button" class="winbtn winbtn--fullscreen" aria-label="Basculer le plein écran" @onclick="Window.ToggleFullscreen"><Icon Name="expand" Size="20" /></button>
+            <button type="button" class="winbtn winbtn--min" aria-label="Réduire" @onclick="Window.Minimize"><Icon Name="minus" Size="20" /></button>
+            <button type="button" class="winbtn winbtn--close" aria-label="Fermer l'application" @onclick="Window.Close"><Icon Name="xmark" Size="20" /></button>
+        }
+    </div>
+</header>
+
+@code {
+    private string _caisse = "1";
+    private string _user = "USER1";
+}

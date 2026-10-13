@@ -1,0 +1,30 @@
+@* Onglets (role=tablist) avec navigation clavier ←/→. Le contenu est rendu par l'appelant selon Selected. *@
+<div class="tabstrip @Class" role="tablist" aria-label="@AriaLabel" @onkeydown="OnKey">
+    @for (var i = 0; i < Tabs.Count; i++)
+    {
+        var index = i;
+        var selected = index == Selected;
+        <button type="button" role="tab" id="tab-@Id-@index" class="tabstrip__tab @(selected ? "is-selected" : null)"
+                aria-selected="@(selected ? "true" : "false")" tabindex="@(selected ? 0 : -1)" @onclick="() => Select(index)">
+            @Tabs[index]
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<string> Tabs { get; set; } = Array.Empty<string>();
+    [Parameter] public int Selected { get; set; }
+    [Parameter] public EventCallback<int> SelectedChanged { get; set; }
+    [Parameter] public string AriaLabel { get; set; } = "Onglets";
+    [Parameter] public string Id { get; set; } = "t";
+    [Parameter] public string? Class { get; set; }
+
+    private Task Select(int i) => SelectedChanged.InvokeAsync(i);
+
+    private Task OnKey(KeyboardEventArgs e) => e.Key switch
+    {
+        "ArrowRight" => Select((Selected + 1) % Tabs.Count),
+        "ArrowLeft" => Select((Selected - 1 + Tabs.Count) % Tabs.Count),
+        _ => Task.CompletedTask,
+    };
+}

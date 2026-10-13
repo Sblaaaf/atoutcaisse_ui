@@ -1,0 +1,92 @@
+@inject IDeliveryService Deliveries
+@inject CaisseUiState Ui
+
+<TabStrip Class="tabstrip--zones" Tabs="_zones" Selected="_zone" SelectedChanged="SelectZone" AriaLabel="Zones" Id="zones" />
+
+<div class="delivery">
+    <div class="delivery__head">
+        <h2>Liste des livraisons</h2>
+        <button type="button" class="btn btn--icon btn--soft" aria-label="Affichage en liste"><Icon Name="list-ul" /></button>
+        <button type="button" class="btn btn--icon btn--soft" aria-label="Rechercher une livraison" @onclick="() => _searchOpen = !_searchOpen"><Icon Name="magnifying-glass" /></button>
+    </div>
+    @if (_searchOpen)
+    {
+        <input class="input delivery__search" placeholder="Client, n°…" aria-label="Rechercher une livraison" @bind="_query" @bind:event="oninput" />
+    }
+
+    <div class="delivery__filters" role="group" aria-label="Filtrer par statut">
+        @foreach (var st in Enum.GetValues<DeliveryStatus>())
+        {
+            var on = _status == st;
+            <button type="button" class="chip chip--@st.ToString().ToLower() @(on ? "is-on" : null)" aria-pressed="@(on ? "true" : "false")"
+                    @onclick="() => _status = on ? null : st">
+                <span class="chip__count">@_orders.Count(o => o.Status == st)</span> @Label(st)
+            </button>
+        }
+    </div>
+
+    <ul class="delivery__list">
+        @foreach (var o in Visible)
+        {
+            <li class="dcard">
+                <div class="dcard__row">
+                    <strong><span class="dot dot--@o.Status.ToString().ToLower()" aria-hidden="true"></span> @o.Emplacement - #@o.Numero</strong>
+                    <span>@o.Date.ToString("dd/MM/yyyy")&nbsp;&nbsp;&nbsp;@o.Date.ToString("HH:mm")</span>
+                </div>
+                <div class="dcard__row">
+                    <span class="dcard__tags">
+                        @foreach (var t in o.Tags) { <span class="tag tag--@(t == "Web" ? "web" : t == "Livraison" ? "liv" : "emp")">@t</span> }
+                    </span>
+                    <span>À régler : <strong class="dcard__amount">@o.ARegler.ToString("0.00 €", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))</strong></span>
+                </div>
+                <div class="dcard__row">
+                    <span><Icon Name="user" Size="14" /> @o.Client</span>
+                    <span class="dcard__pts">@o.Points pts@(o.Cadeau ? " - Cadeau !" : "")
+                        @if (o.Cadeau) { <Icon Name="gift" Class="dcard__gift" /> } else { <Icon Name="circle-question" Class="dcard__q" /> }
+                    </span>
+                </div>
+                <div class="dcard__actions">
+                    <button type="button" class="btn btn--soft" @onclick="@(() => Act(o, "marquée prête"))"><Icon Name="circle-check" /> Prêt</button>
+                    <button type="button" class="btn btn--soft" @onclick="@(() => Act(o, "détails à brancher"))"><Icon Name="circle-info" /> Détails</button>
+                    <button type="button" class="btn btn--soft" @onclick="@(() => Act(o, "impression lancée"))"><Icon Name="print" /> Imprimer</button>
+                    <button type="button" class="btn btn--soft" @onclick="@(() => Act(o, "fidélité à brancher"))"><Icon Name="percent" /> Fidélité</button>
+                </div>
+            </li>
+        }
+        @if (!Visible.Any())
+        {
+            <li class="muted delivery__empty">Aucune livraison.</li>
+        }
+    </ul>
+</div>
+
+@code {
+    private IReadOnlyList<string> _zones = Array.Empty<string>();
+    private IReadOnlyList<DeliveryOrder> _orders = Array.Empty<DeliveryOrder>();
+    private int _zone;
+    private DeliveryStatus? _status = DeliveryStatus.PasPret;
+    private bool _searchOpen;
+    private string _query = "";
+
+    private IEnumerable<DeliveryOrder> Visible => _orders
+        .Where(o => _status is null || o.Status == _status)
+        .Where(o => _query.Length == 0 || o.Client.Contains(_query, StringComparison.CurrentCultureIgnoreCase) || o.Numero.ToString().Contains(_query));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _zones = await Deliveries.GetZonesAsync();
+        await Load();
+    }
+
+    private async Task SelectZone(int i) { _zone = i; await Load(); }
+    private async Task Load() => _orders = _zones.Count == 0 ? Array.Empty<DeliveryOrder>() : await Deliveries.GetOrdersAsync(_zones[_zone]);
+
+    private static string Label(DeliveryStatus s) => s switch
+    {
+        DeliveryStatus.PasPret => "Pas prêt",
+        DeliveryStatus.Pret => "Prêt",
+        _ => "Livré",
+    };
+
+    private void Act(DeliveryOrder o, string what) => Ui.Notify($"{o.Emplacement} #{o.Numero} : {what}.");
+}

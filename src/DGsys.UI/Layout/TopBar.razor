@@ -1,0 +1,27 @@
+@inject IWindowHost Window
+
+<header class="topbar">
+    <div class="topbar__brand">
+        @* Remplace ce SVG par ton logo officiel (wwwroot/img/logo.svg) *@
+        <svg class="topbar__logo" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="2" y="2" width="28" height="28" rx="4" fill="#fff" />
+            <rect x="6" y="6" width="20" height="20" rx="2" fill="#2b3467" />
+            <rect x="10" y="10" width="12" height="12" rx="1" fill="#6f7bd6" />
+        </svg>
+        <span class="topbar__name">DGsys</span>
+        <a class="topbar__mode" href="/caisse/encaissement"><Icon Name="desktop" /> Caisse</a>
+    </div>
+
+    <div class="topbar__actions">
+        <a class="topbar__link" href="/configuration"><Icon Name="gear" /> Configuration rapide</a>
+        <span class="topbar__sep" aria-hidden="true"></span>
+        <span class="topbar__user"><Icon Name="user" /> USER1</span>
+
+        @if (Window.IsAvailable)
+        {
+            <button type="button" class="winbtn winbtn--fullscreen" aria-label="Basculer le plein écran" @onclick="Window.ToggleFullscreen"><Icon Name="compress" Size="22" /></button>
+            <button type="button" class="winbtn winbtn--min" aria-label="Réduire" @onclick="Window.Minimize"><Icon Name="minus" Size="22" /></button>
+            <button type="button" class="winbtn winbtn--close" aria-label="Fermer l'application" @onclick="Window.Close"><Icon Name="xmark" Size="22" /></button>
+        }
+    </div>
+</header>

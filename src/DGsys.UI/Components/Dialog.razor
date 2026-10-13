@@ -1,0 +1,33 @@
+@* Fenêtre modale (équivalent des fenêtres WinDev) : role=dialog, Échap pour fermer, focus à l'ouverture. *@
+<div class="dialog-backdrop">
+    <div class="dialog @Class" style="@(Width is null ? null : $"width:{Width}")" role="dialog" aria-modal="true" aria-labelledby="@_titleId"
+         tabindex="-1" @ref="_root" @onkeydown="OnKey">
+        <div class="dialog__bar">
+            <span class="dialog__badge" aria-hidden="true">WD</span>
+            <h2 id="@_titleId" class="dialog__title">@Title</h2>
+            <button type="button" class="dialog__close" aria-label="Fermer la fenêtre" @onclick="OnClose"><Icon Name="xmark" Size="20" /></button>
+        </div>
+        <div class="dialog__body">@ChildContent</div>
+    </div>
+</div>
+
+@code {
+    private readonly string _titleId = "dlg-" + Guid.NewGuid().ToString("N")[..8];
+    private ElementReference _root;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Width { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await _root.FocusAsync();
+    }
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") await OnClose.InvokeAsync();
+    }
+}

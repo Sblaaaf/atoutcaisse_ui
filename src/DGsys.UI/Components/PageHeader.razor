@@ -1,0 +1,12 @@
+<header class="page-header">
+    <h1 tabindex="-1">@Title</h1>
+    @if (!string.IsNullOrEmpty(Subtitle))
+    {
+        <p>@Subtitle</p>
+    }
+</header>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+}

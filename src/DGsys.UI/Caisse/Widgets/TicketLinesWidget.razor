@@ -1,0 +1,53 @@
+@inherits CaisseComponentBase
+
+<WidgetFrame Title="Table" Class="@($"widget--lines {(_expanded ? "is-expanded" : null)}")">
+    <div class="tlines__scroll">
+        <table class="tlines" aria-label="Lignes du ticket">
+            <thead class="visually-hidden">
+                <tr>
+                    <th scope="col">Article</th><th scope="col">Quantité</th><th scope="col">Montant</th><th scope="col">Sélection</th>
+                    @for (var m = 1; m <= TicketLine.MarkCount; m++) { <th scope="col">Marque @m</th> }
+                </tr>
+            </thead>
+            <tbody>
+                @if (Ticket.Lines.Count == 0)
+                {
+                    <tr><td colspan="@(4 + TicketLine.MarkCount)" class="tlines__empty">Aucun article – touchez une tuile pour l'ajouter.</td></tr>
+                }
+                @foreach (var line in Ticket.Lines)
+                {
+                    var current = line == Ticket.Current;
+                    <tr class="@(current ? "is-current" : null)" @onclick="() => Ticket.Select(line)" aria-selected="@(current ? "true" : "false")">
+                        <td class="tlines__name" title="@line.Item.Label">@line.Item.Label</td>
+                        <td class="tlines__qty">@line.Quantity</td>
+                        <td class="tlines__amount">@Eur(line.Total)</td>
+                        <td class="tlines__check">
+                            <input type="checkbox" class="bigcheck" checked="@line.Selected" aria-label="@($"Sélectionner {line.Item.Label}")"
+                                   @onchange="e => { line.Selected = (bool)(e.Value ?? false); Ticket.Notify(); }" @onclick:stopPropagation="true" />
+                        </td>
+                        @for (var m = 0; m < TicketLine.MarkCount; m++)
+                        {
+                            var idx = m;
+                            <td class="tlines__check @(idx == 0 ? "tlines__check--first" : null)">
+                                <input type="checkbox" class="bigcheck" checked="@line.Marks[idx]" aria-label="@($"Marque {idx + 1} – {line.Item.Label}")"
+                                       @onchange="e => { line.Marks[idx] = (bool)(e.Value ?? false); Ticket.Notify(); }" @onclick:stopPropagation="true" />
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="tlines__foot">
+        <button type="button" class="btn btn--outline" aria-pressed="@(_expanded ? "true" : "false")" @onclick="() => _expanded = !_expanded">
+            <Icon Name="@(_expanded ? "angles-up" : "angles-down")" /> @(_expanded ? "Réduire" : "Agrandir")
+        </button>
+        <span class="tlines__count">@Ticket.ArticleCount article(s)</span>
+        <strong class="tlines__ttc">Montant TTC</strong>
+        <strong class="tlines__total">@Eur(Ticket.Total)</strong>
+    </div>
+</WidgetFrame>
+
+@code {
+    private bool _expanded;
+}

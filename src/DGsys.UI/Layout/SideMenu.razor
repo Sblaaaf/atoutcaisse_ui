@@ -1,0 +1,56 @@
+@implements IDisposable
+@inject NavigationManager Nav
+
+<nav class="sidemenu" aria-label="Navigation principale">
+    @foreach (var module in NavigationCatalog.Modules)
+    {
+        var active = module == _current;
+        <a class="sm-module @(active ? "is-active" : null)" href="@module.Href" aria-current="@(active ? "true" : null)">
+            <Icon Name="@module.Icon" />
+            <span class="sm-label">@module.Label</span>
+            @if (active && module.Sections.Count > 0)
+            {
+                <Icon Name="chevron-right" Class="sm-chevron" />
+            }
+        </a>
+
+        @if (active && module.Sections.Count > 0)
+        {
+            <div class="sm-sub">
+                <a class="sm-home" href="@module.Href">@module.HomeLabel</a>
+                @foreach (var sec in module.Sections)
+                {
+                    <div class="sm-section">@sec.Title</div>
+                    @foreach (var entry in sec.Entries)
+                    {
+                        var isCurrent = NavigationCatalog.Normalize(Nav.ToBaseRelativePath(Nav.Uri)) == NavigationCatalog.Normalize(entry.Href);
+                        <a class="sm-entry @(isCurrent ? "is-current" : null)" href="@entry.Href" aria-current="@(isCurrent ? "page" : null)">
+                            <Icon Name="@entry.Icon" Size="18" />
+                            <span class="sm-label">@entry.Label</span>
+                        </a>
+                    }
+                }
+            </div>
+        }
+    }
+</nav>
+
+@code {
+    private MenuModule? _current;
+
+    protected override void OnInitialized()
+    {
+        Refresh();
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        Refresh();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Refresh() => _current = NavigationCatalog.ModuleFor(Nav.ToBaseRelativePath(Nav.Uri));
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

@@ -1,0 +1,48 @@
+@inherits CaisseComponentBase
+
+@* Rail vertical (Client / Zone / Livraison / Attente) + volet coulissant qui recouvre la caisse. *@
+<div class="drawer @(Ui.DrawerOpen ? "is-open" : null)" @onkeydown="OnKey">
+    @if (Ui.DrawerOpen)
+    {
+        <section class="drawer__panel" id="drawer-panel" aria-label="@Ui.Tab">
+            @switch (Ui.Tab)
+            {
+                case DrawerTab.Livraison:
+                    <DeliveryPanel />
+                    break;
+                default:
+                    <div class="drawer__todo">
+                        <h2>@Ui.Tab</h2>
+                        <p class="muted">Volet à migrer.</p>
+                    </div>
+                    break;
+            }
+        </section>
+    }
+    <nav class="rail" aria-label="Volets de caisse">
+        <button type="button" class="rail__toggle" aria-expanded="@(Ui.DrawerOpen ? "true" : "false")" aria-controls="drawer-panel"
+                aria-label="@(Ui.DrawerOpen ? "Fermer le volet" : "Ouvrir le volet")" @onclick="Ui.ToggleDrawer">
+            <Icon Name="@(Ui.DrawerOpen ? "angles-left" : "angles-right")" Size="22" />
+        </button>
+        @foreach (var tab in Enum.GetValues<DrawerTab>())
+        {
+            var current = Ui.DrawerOpen && Ui.Tab == tab;
+            <button type="button" class="rail__tab @(current ? "is-current" : null)" aria-pressed="@(current ? "true" : "false")"
+                    @onclick="() => Open(tab)">
+                <span>@tab</span>
+            </button>
+        }
+    </nav>
+</div>
+
+@code {
+    private void Open(DrawerTab tab)
+    {
+        if (Ui.DrawerOpen && Ui.Tab == tab) Ui.CloseDrawer(); else Ui.OpenDrawer(tab);
+    }
+
+    private void OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape" && Ui.DrawerOpen) Ui.CloseDrawer();
+    }
+}

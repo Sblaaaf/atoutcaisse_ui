@@ -1,0 +1,17 @@
+@* Case à cocher stylée : <input type=checkbox> natif (clavier, lecteurs d'écran) + habillage CSS. *@
+<label class="check @Class">
+    <input type="checkbox" checked="@Value" @onchange="OnChange" disabled="@Disabled" />
+    <span class="check__box" aria-hidden="true"><Icon Name="check" Size="16" /></span>
+    <span class="check__label">@if (Label is not null) { @Label } else { @ChildContent }</span>
+</label>
+
+@code {
+    [Parameter] public bool Value { get; set; }
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private Task OnChange(ChangeEventArgs e) => ValueChanged.InvokeAsync((bool)(e.Value ?? false));
+}

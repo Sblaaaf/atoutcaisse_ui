@@ -1,0 +1,162 @@
+@typeparam T
+
+<div class="grid @Class" style="@(MaxHeight is null ? null : $"max-height:{MaxHeight}")">
+    <div class="grid__scroll">
+        <table class="grid__table" aria-label="@AriaLabel" aria-rowcount="@(_view.Count + 1)">
+            <thead>
+                <tr>
+                    @foreach (var col in Columns)
+                    {
+                        var filter = _filters.GetValueOrDefault(col.Key);
+                        <th scope="col" class="grid__th align-@col.Align.ToString().ToLower()" style="@(col.Width is null ? null : $"width:{col.Width}")"
+                            aria-sort="@AriaSort(col)">
+                            <div class="grid__thin">
+                                @if (col.Sortable)
+                                {
+                                    <button type="button" class="grid__sort" @onclick="() => SortBy(col.Key)">
+                                        <span>@col.Title</span>
+                                        @if (_sortKey == col.Key)
+                                        {
+                                            <span class="grid__arrow" aria-hidden="true">@(_sortDesc ? "▼" : "▲")</span>
+                                        }
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="grid__sort">@col.Title</span>
+                                }
+                                @if (col.Filterable)
+                                {
+                                    <button type="button" class="grid__filter @(filter is not null ? "is-active" : null)"
+                                            aria-label="Filtrer la colonne @col.Title" aria-haspopup="menu" aria-expanded="@(_menu == col.Key)"
+                                            @onclick="() => ToggleMenu(col.Key)">
+                                        <Icon Name="filter" Size="14" />
+                                    </button>
+                                }
+                            </div>
+                            @if (_menu == col.Key)
+                            {
+                                <ColumnFilterMenu Title="@col.Title" Id="@col.Key" Current="filter"
+                                                  OnSort="d => ApplySort(col.Key, d)"
+                                                  OnApply="f => ApplyFilter(col.Key, f)"
+                                                  OnClose="CloseMenu" />
+                            }
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @if (_view.Count == 0)
+                {
+                    <tr><td colspan="@Columns.Count" class="grid__empty">Aucune donnée</td></tr>
+                }
+                @for (var i = 0; i < _view.Count; i++)
+                {
+                    var item = _view[i];
+                    var isSelected = EqualityComparer<T>.Default.Equals(item, Selected);
+                    <tr class="grid__row @(isSelected ? "is-selected" : null) @(RowClass?.Invoke(item))" aria-rowindex="@(i + 2)" aria-selected="@(isSelected ? "true" : null)"
+                        @onclick="() => Select(item)">
+                        @foreach (var col in Columns)
+                        {
+                            <td class="align-@col.Align.ToString().ToLower()">
+                                @if (col.Template is not null) { @col.Template(item) }
+                                else { @col.Display(item) }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+            @if (Footer != GridFooter.None)
+            {
+                <tfoot>
+                    @foreach (var kind in FooterKinds)
+                    {
+                        <tr>
+                            @for (var c = 0; c < Columns.Count; c++)
+                            {
+                                var col = Columns[c];
+                                <td class="align-@col.Align.ToString().ToLower()">
+                                    @if (c == 0) { @(kind == GridFooter.Sum ? "Somme" : "Moyenne") }
+                                    else if (col.Aggregate) { @col.AggregateText(_view, kind) }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<GridColumn<T>> Columns { get; set; } = Array.Empty<GridColumn<T>>();
+    [Parameter] public IReadOnlyList<T>? Items { get; set; }
+    [Parameter] public string AriaLabel { get; set; } = "Tableau de données";
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? MaxHeight { get; set; }
+    [Parameter] public GridFooter Footer { get; set; } = GridFooter.None;
+    [Parameter] public Func<T, string?>? RowClass { get; set; }
+    [Parameter] public T? Selected { get; set; }
+    [Parameter] public EventCallback<T?> SelectedChanged { get; set; }
+
+    private readonly Dictionary<string, ColumnFilter> _filters = new();
+    private string? _sortKey;
+    private bool _sortDesc;
+    private string? _menu;
+    private List<T> _view = new();
+
+    private IEnumerable<GridFooter> FooterKinds
+    {
+        get
+        {
+            if (Footer.HasFlag(GridFooter.Sum)) yield return GridFooter.Sum;
+            if (Footer.HasFlag(GridFooter.Average)) yield return GridFooter.Average;
+        }
+    }
+
+    protected override void OnParametersSet() => Rebuild();
+
+    private void Rebuild()
+    {
+        IEnumerable<T> q = Items ?? Array.Empty<T>();
+        foreach (var (key, filter) in _filters)
+        {
+            var col = Columns.FirstOrDefault(c => c.Key == key);
+            if (col is null) continue;
+            q = q.Where(r => filter.Matches(col.Value(r), col.Display(r)));
+        }
+        if (_sortKey is not null && Columns.FirstOrDefault(c => c.Key == _sortKey) is { } sc)
+        {
+            q = _sortDesc
+                ? q.OrderByDescending(r => sc.Value(r), Comparer<object?>.Create(GridColumn<T>.CompareValues))
+                : q.OrderBy(r => sc.Value(r), Comparer<object?>.Create(GridColumn<T>.CompareValues));
+        }
+        _view = q.ToList();
+    }
+
+    private string? AriaSort(GridColumn<T> col) => _sortKey != col.Key ? null : _sortDesc ? "descending" : "ascending";
+
+    private void SortBy(string key)
+    {
+        if (_sortKey == key) _sortDesc = !_sortDesc; else { _sortKey = key; _sortDesc = false; }
+        Rebuild();
+    }
+
+    private void ApplySort(string key, bool desc) { _sortKey = key; _sortDesc = desc; _menu = null; Rebuild(); }
+
+    private void ApplyFilter(string key, ColumnFilter? f)
+    {
+        if (f is null) _filters.Remove(key); else _filters[key] = f;
+        _menu = null;
+        Rebuild();
+    }
+
+    private void ToggleMenu(string key) => _menu = _menu == key ? null : key;
+    private void CloseMenu() => _menu = null;
+
+    private async Task Select(T item)
+    {
+        Selected = item;
+        await SelectedChanged.InvokeAsync(item);
+    }
+}

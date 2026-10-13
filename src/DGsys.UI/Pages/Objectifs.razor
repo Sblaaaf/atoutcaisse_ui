@@ -1,0 +1,94 @@
+@page "/caisse/objectifs"
+@inject IObjectifsService Service
+@inject NavigationManager Nav
+
+<PageTitle>Objectifs – DGsys</PageTitle>
+<PageHeader Title="Objectifs" />
+
+@if (_s is null)
+{
+    <p role="status">Chargement…</p>
+}
+else
+{
+    <div class="obj">
+        <Check @bind-Value="_s.ObjectifVisuelActif" Label="Activer l'objectif visuel" Class="obj__master" />
+
+        <div class="obj__layout">
+            <fieldset class="fieldset obj__config">
+                <legend>Configuration des objectifs</legend>
+
+                <table class="obj__table">
+                    <thead>
+                        <tr><td></td><th scope="col">Objectif Bas</th><th scope="col">Objectif Moyen</th><th scope="col">Objectif Haut</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var j in _s.Jours)
+                        {
+                            <tr>
+                                <th scope="row">@j.Jour</th>
+                                <td><Money Value="j.Bas" ValueChanged="v => j.Bas = v" Label="@($"Objectif bas {j.Jour}")" /></td>
+                                <td><Money Value="j.Moyen" ValueChanged="v => j.Moyen = v" Label="@($"Objectif moyen {j.Jour}")" /></td>
+                                <td><Money Value="j.Haut" ValueChanged="v => j.Haut = v" Label="@($"Objectif haut {j.Jour}")" /></td>
+                            </tr>
+                        }
+                        <tr class="obj__popup-row">
+                            <th scope="row">POP-UP :</th>
+                            <td><Toggle @bind-Value="_s.PopupBas" AriaLabel="Pop-up objectif bas" /></td>
+                            <td><Toggle @bind-Value="_s.PopupMoyen" AriaLabel="Pop-up objectif moyen" /></td>
+                            <td><Toggle @bind-Value="_s.PopupHaut" AriaLabel="Pop-up objectif haut" /></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="field-row obj__hour">
+                    <label for="heure-jour">Heure de changement de journée</label>
+                    <input id="heure-jour" class="input input--center" type="time" step="1" @bind="_s.HeureChangementJournee" />
+                </div>
+
+                <Check @bind-Value="_s.AfficherValeursMonetaires" Label="Afficher les valeurs monétaire des objectifs" />
+                <Check @bind-Value="_s.AfficherBarre" Label="Afficher visuellement la barre" />
+                <Check @bind-Value="_s.UtiliserConsommationsArchivees" Label="Utiliser les consommations archivées" />
+            </fieldset>
+
+            <div class="obj__texts">
+                <div class="obj__text">
+                    <label for="txt-bas">Texte objectif bas :</label>
+                    <textarea id="txt-bas" class="textarea" @bind="_s.TexteBas" @bind:event="oninput"></textarea>
+                </div>
+                <div class="obj__text">
+                    <label for="txt-moyen">Texte objectif moyen :</label>
+                    <textarea id="txt-moyen" class="textarea" @bind="_s.TexteMoyen" @bind:event="oninput"></textarea>
+                </div>
+                <div class="obj__text">
+                    <label for="txt-haut">Texte objectif haut :</label>
+                    <textarea id="txt-haut" class="textarea" @bind="_s.TexteHaut" @bind:event="oninput"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-footer">
+            <button type="button" class="btn btn--outline btn--footer" @onclick="Back">Retour</button>
+            @if (_saved)
+            {
+                <span class="status" role="status">Objectifs enregistrés.</span>
+            }
+            <button type="button" class="btn btn--primary btn--footer" @onclick="Save">Valider</button>
+        </div>
+    </div>
+}
+
+@code {
+    private ObjectifsSettings? _s;
+    private bool _saved;
+
+    protected override async Task OnInitializedAsync() => _s = await Service.GetAsync();
+
+    private async Task Save()
+    {
+        await Service.SaveAsync(_s!);
+        _saved = true;
+    }
+
+    private void Back() => Nav.NavigateTo("/caisse");
+}

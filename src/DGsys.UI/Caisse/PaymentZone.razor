@@ -1,0 +1,106 @@
+@inherits CaisseComponentBase
+
+<div class="payzone">
+    <div class="keypad">
+        <div class="keypad__display">
+            <label for="pay-amount">Règlement</label>
+            <div class="keypad__row">
+                <output id="pay-amount" class="keypad__value" aria-live="polite">@(_pad.IsEmpty ? Eur(Ticket.Remaining) : _pad.Display)</output>
+                <button type="button" class="btn btn--primary keypad__enter" @onclick="@(() => _pad.Press("="))">Entrer</button>
+            </div>
+        </div>
+        <div class="keypad__keys">
+            @foreach (var k in Keys)
+            {
+                var key = k;
+                <button type="button" class="key @KeyClass(key)" aria-label="@KeyLabel(key)" @onclick="() => _pad.Press(key)">@key</button>
+            }
+        </div>
+    </div>
+
+    <div class="paysum">
+        <div class="paysum__row"><span>Somme déjà réglée</span><span>@Eur(Ticket.Paid)</span></div>
+        <div class="paysum__row paysum__row--big"><span>Somme restante</span><span>@Eur(Ticket.Remaining)</span></div>
+        @if (Ticket.Change > 0)
+        {
+            <div class="paysum__row paysum__row--change"><span>Rendu monnaie</span><span>@Eur(Ticket.Change)</span></div>
+        }
+        <div class="paymethods">
+            <button type="button" class="pm pm--main" @onclick="@(() => Pay("Carte bancaire"))">Carte bancaire</button>
+            <button type="button" class="pm" @onclick="@(() => Pay("Avoir"))">Avoir</button>
+            <button type="button" class="pm pm--wide" @onclick="@(() => Pay("Espèces"))">Espèces</button>
+            <button type="button" class="pm" @onclick="@(() => Pay("Chèque Cadeau"))">Chèque Cadeau</button>
+            <button type="button" class="pm pm--wide" @onclick="@(() => Pay("Chèque"))">Chèque</button>
+            <button type="button" class="pm" @onclick="@(() => Pay("Chèque Vacances"))">Chèque Vacances</button>
+            <button type="button" class="pm pm--wide" @onclick="@(() => Pay("Titres Restaurant"))">Titres Restaurant</button>
+            <button type="button" class="pm" aria-label="Autres moyens de paiement" @onclick="@(() => Ui.Notify("Autres moyens de paiement : à brancher."))">+</button>
+        </div>
+        <hr />
+        <div class="paymethods paymethods--3">
+            <button type="button" class="pm" @onclick="@(() => Pay("American Express"))">American Express</button>
+            <button type="button" class="pm" @onclick="@(() => Pay("Virement"))">Virement</button>
+            <button type="button" class="pm" @onclick="@(() => Pay("Paypal"))">Paypal</button>
+        </div>
+        @if (Ticket.Payments.Count > 0)
+        {
+            <ul class="paylist" aria-label="Règlements enregistrés">
+                @foreach (var p in Ticket.Payments) { <li><span>@p.Method</span><span>@Eur(p.Amount)</span></li> }
+            </ul>
+        }
+    </div>
+
+    <div class="payend">
+        <button type="button" class="pm" disabled="@(!CanValidate)" @onclick="() => Validate(true)">Avec impression</button>
+        <button type="button" class="pm" disabled="@(!CanValidate)" @onclick="() => Validate(false)">Sans impression</button>
+        <hr />
+        <div class="payend__grid">
+            <button type="button" class="pm pm--grey" @onclick="@(() => Ui.Notify("Partage d'addition : à brancher."))">Partager Addition</button>
+            <button type="button" class="pm pm--grey" @onclick="@(() => Ui.Notify("Encaissement détaillé : à brancher."))">Encaissement détaillé</button>
+            <button type="button" class="pm pm--grey" @onclick="@(() => Ui.Notify("Remise sur ticket : à brancher."))">Remise</button>
+            <button type="button" class="pm pm--grey" disabled="@(Ticket.Payments.Count == 0)" @onclick="Ticket.CancelLastPayment">Annuler le dernier</button>
+            <button type="button" class="pm pm--grey" @onclick="@(() => Ui.Notify("Transfert de la vente : à brancher."))">Transférer la vente</button>
+            <button type="button" class="pm pm--grey" aria-label="Autres actions" @onclick="@(() => Ui.Notify("Autres actions : à brancher."))">+</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly string[] Keys = { "7", "8", "9", "RAZ", "4", "5", "6", "+", "*", "1", "2", "3", "-", "/", "0", ",", "=" };
+    private readonly PaymentKeypad _pad = new();
+
+    private bool CanValidate => Ticket.Lines.Count > 0 && Ticket.Remaining == 0;
+
+    private static string? KeyClass(string k) => k switch
+    {
+        "RAZ" => "key--raz",
+        "+" or "-" or "*" or "/" => "key--op",
+        "=" => "key--op key--eq",
+        "0" => "key--zero",
+        _ => null,
+    };
+
+    private static string KeyLabel(string k) => k switch
+    {
+        "RAZ" => "Remise à zéro", "+" => "Plus", "-" => "Moins", "*" => "Multiplier", "/" => "Diviser", "=" => "Égal", "," => "Virgule",
+        _ => k,
+    };
+
+    private void Pay(string method)
+    {
+        if (Ticket.Lines.Count == 0) { Ui.Notify("Le ticket est vide."); return; }
+        _pad.Press("=");
+        var p = Ticket.Pay(method, _pad.IsEmpty ? null : _pad.Value);
+        _pad.Reset();
+        if (p is null) Ui.Notify("Rien à régler.");
+    }
+
+    private void Validate(bool print)
+    {
+        var total = Ticket.Total;
+        var change = Ticket.Change;
+        Ui.AddRevenue(total);
+        Ticket.Clear();
+        Ticket.Numero++;
+        Ui.Notify($"Vente validée ({Eur(total)}){(change > 0 ? $" – rendu {Eur(change)}" : "")}{(print ? " – ticket imprimé" : "")}.");
+    }
+}

@@ -1,0 +1,29 @@
+@inherits CaisseComponentBase
+
+<WidgetFrame Title="Ticket en cours" Class="widget--ticketinfo">
+    <Header>
+        <h2 class="widget__title widget__title--ticket"><span class="dot dot--paspret" aria-hidden="true"></span> @Ticket.Emplacement - #@Ticket.Numero</h2>
+    </Header>
+    <ChildContent>
+        <div class="tinfo__meta">
+            <span></span><span>@Ticket.OpenedAt.ToString("dd/MM/yy")</span>
+            <span><Icon Name="user" Size="14" /> @Ticket.Client</span><span>@Ticket.OpenedAt.ToString("HH:mm")</span>
+        </div>
+        <button type="button" class="tinfo__profil" @onclick="@(() => Ui.Notify("Choix du profil de prix : à brancher."))">Profil : <strong>@Ticket.Profil</strong></button>
+        <div class="tiles tiles--3">
+            <button type="button" class="tile" @onclick="() => Ui.OpenDrawer(DrawerTab.Livraison)"><Icon Name="truck" Size="20" /><span>Livraison</span></button>
+            <button type="button" class="tile" @onclick="@(() => Todo("Ajout en liste"))"><Icon Name="list-ul" Size="20" /><span>Ajout en liste</span></button>
+            <button type="button" class="tile" @onclick="@(() => Todo("Justificatif"))"><Icon Name="receipt" Size="20" /><span>Justificatif</span></button>
+            <button type="button" class="tile" @onclick="@(() => Todo("Gestion"))"><Icon Name="chart-pie" Size="20" /><span>Gestion</span></button>
+            <button type="button" class="tile" @onclick="@(() => Todo("Ouverture du tiroir-caisse"))"><Icon Name="cash-register" Size="20" /><span>Ouvrir tiroir</span></button>
+            <button type="button" class="tile" @onclick="() => Ui.OpenDrawer(DrawerTab.Client)"><Icon Name="user" Size="20" /><span>Client</span></button>
+            <button type="button" class="tile" @onclick="() => Ui.OpenDrawer(DrawerTab.Attente)"><Icon Name="hourglass-half" Size="20" /><span>Attente</span></button>
+            <button type="button" class="tile" @onclick="@(() => Todo("Note"))"><Icon Name="note-sticky" Size="20" /><span>Note</span></button>
+            <button type="button" class="tile" aria-label="Plus d'actions" @onclick="@(() => Todo("Plus d'actions"))"><Icon Name="circle-arrow-right" Size="24" /></button>
+        </div>
+    </ChildContent>
+</WidgetFrame>
+
+@code {
+    private void Todo(string what) => Ui.Notify($"{what} : à brancher.");
+}

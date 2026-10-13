@@ -1,0 +1,110 @@
+@page "/clients"
+@inject IClientService Clients
+
+<PageTitle>Gestion Clients – DGsys</PageTitle>
+<PageHeader Title="Gestion Clients" Subtitle="Espace dédié à la gestion globale des clients, fidélité, ..." />
+
+<div class="home-grid home-grid--clients">
+    <Card Title="Listes">
+        <FeatureLink Label="Clients" Href="/clients/liste" Icon="address-card" />
+        <FeatureLink Label="Devis" Href="/clients/devis" Icon="file-lines" />
+        <FeatureLink Label="Évènements" Href="/clients/evenements" Icon="calendar-days" />
+        <FeatureLink Label="Configuration client par défaut" Href="/clients/parametres" Icon="user-gear" Highlighted="true" />
+    </Card>
+
+    <Card Title="Fonctionnalités">
+        <FeatureLink Label="Recherche client multi-critères" Href="/clients/recherche" Icon="magnifying-glass-plus" />
+        <FeatureLink Label="Gestion fidélité" Href="/clients/fidelite" Icon="user-check" />
+        <FeatureLink Label="État date compte client" Href="/clients/etat-comptes" Icon="table-cells-large" />
+        <FeatureLink Label="RAZ client post paiement" Href="/clients/cloture-raz" Icon="user-slash" />
+    </Card>
+
+    <Card Title="Événements actifs">
+        <DgGrid T="ActiveEvent" Columns="_eventCols" Items="_events" AriaLabel="Événements actifs" Class="grid--compact" />
+    </Card>
+</div>
+
+<div class="panel">
+    <TabStrip Tabs="_tabs" @bind-Selected="_tab" AriaLabel="Listes clients" Id="clients" />
+    <div class="panel__body panel__body--with-aside">
+        @if (_tab == 0)
+        {
+            <DgGrid T="ClientRow" Columns="_clientCols" Items="_clients" AriaLabel="Liste des clients actifs" MaxHeight="360px" />
+        }
+        else
+        {
+            <DgGrid T="UnpaidInvoice" Columns="_invoiceCols" Items="_invoices" AriaLabel="Liste des factures non réglées"
+                    Footer="GridFooter.Sum" MaxHeight="360px" @bind-Selected="_selectedInvoice" />
+        }
+        <div class="aside-actions">
+            <button type="button" class="btn btn--tile" disabled="@(_tab == 1 && _selectedInvoice is null)" @onclick="Print">
+                <Icon Name="print" Size="28" /><span>Impression</span>
+            </button>
+        </div>
+    </div>
+    @if (_status is not null)
+    {
+        <p class="status" role="status">@_status</p>
+    }
+</div>
+
+@code {
+    private static readonly string[] _tabs = { "LISTE DES CLIENTS ACTIFS", "LISTE DES FACTURES NON REGLEES" };
+    private int _tab = 1; // la capture montre l'onglet « factures non réglées » actif
+    private string? _status;
+
+    private IReadOnlyList<ClientRow> _clients = Array.Empty<ClientRow>();
+    private IReadOnlyList<UnpaidInvoice> _invoices = Array.Empty<UnpaidInvoice>();
+    private IReadOnlyList<ActiveEvent> _events = Array.Empty<ActiveEvent>();
+    private UnpaidInvoice? _selectedInvoice;
+
+    private IReadOnlyList<GridColumn<ActiveEvent>> _eventCols = Array.Empty<GridColumn<ActiveEvent>>();
+    private IReadOnlyList<GridColumn<ClientRow>> _clientCols = Array.Empty<GridColumn<ClientRow>>();
+    private IReadOnlyList<GridColumn<UnpaidInvoice>> _invoiceCols = Array.Empty<GridColumn<UnpaidInvoice>>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _eventCols = new GridColumn<ActiveEvent>[]
+        {
+            new() { Key = "nom", Title = "Nom événement", Value = e => e.Nom },
+            new() { Key = "debut", Title = "Date début", Value = e => e.Debut, Format = "dd/MM/yyyy", Align = GridAlign.Right, Width = "7.5rem" },
+            new() { Key = "fin", Title = "Date fin", Value = e => e.Fin, Format = "dd/MM/yyyy", Align = GridAlign.Right, Width = "7.5rem" },
+        };
+        _clientCols = new GridColumn<ClientRow>[]
+        {
+            new() { Key = "civ", Title = "Civilité", Value = c => c.Civilite, Width = "6rem" },
+            new() { Key = "nom", Title = "Nom", Value = c => c.Nom },
+            new() { Key = "prenom", Title = "Prénom", Value = c => c.Prenom },
+            new() { Key = "societe", Title = "Société", Value = c => c.Societe },
+            new() { Key = "pseudo", Title = "Pseudo", Value = c => c.Pseudo },
+        };
+        _invoiceCols = new GridColumn<UnpaidInvoice>[]
+        {
+            new() { Key = "zoom", Title = "Zoom", Value = i => i.Numero, Sortable = false, Filterable = false, Width = "4.5rem", Align = GridAlign.Center, Template = ZoomCell },
+            new() { Key = "date", Title = "Date heure Facture", Value = i => i.Date, Format = "dd/MM/yyyy HH:mm", Width = "9.5rem" },
+            new() { Key = "num", Title = "Num Facture", Value = i => i.Numero, Align = GridAlign.Right, Width = "6.5rem" },
+            new() { Key = "statut", Title = "Statut Entité", Value = i => i.Statut },
+            new() { Key = "societe", Title = "Nom Société", Value = i => i.Societe },
+            new() { Key = "client", Title = "Nom du client", Value = i => i.Client },
+            new() { Key = "montant", Title = "Montant", Value = i => i.Montant, Format = "C2", Align = GridAlign.Right, Aggregate = true },
+            new() { Key = "reste", Title = "Reste à régler", Value = i => i.ResteARegler, Format = "C2", Align = GridAlign.Right, Aggregate = true },
+            new() { Key = "reglement", Title = "Ajout règlement", Value = i => i.Numero, Sortable = false, Filterable = false, Align = GridAlign.Center, Template = PayCell },
+            new() { Key = "type", Title = "Type Règlement", Value = i => i.TypeReglement },
+        };
+
+        _clients = await Clients.GetClientsAsync();
+        _invoices = await Clients.GetUnpaidInvoicesAsync();
+        _events = await Clients.GetActiveEventsAsync();
+    }
+
+    private RenderFragment<UnpaidInvoice> ZoomCell => inv => @<button type="button" class="icon-btn" aria-label="@($"Afficher la facture {inv.Numero}")"><Icon Name="magnifying-glass-plus" Size="22" /></button>;
+
+    private RenderFragment<UnpaidInvoice> PayCell => inv => @<button type="button" class="btn btn--primary btn--cell" aria-label="@($"Ajouter un règlement à la facture {inv.Numero}")"
+                                                                   @onclick="() => AddPayment(inv)" @onclick:stopPropagation="true"><Icon Name="euro-sign" Size="22" /></button>;
+
+    private void AddPayment(UnpaidInvoice inv) => _status = $"Ajout de règlement pour la facture n°{inv.Numero} (écran à brancher).";
+
+    private void Print() => _status = _tab == 1
+        ? $"Impression de la facture n°{_selectedInvoice?.Numero} (à brancher sur le module d'impression)."
+        : "Impression de la liste des clients (à brancher).";
+}

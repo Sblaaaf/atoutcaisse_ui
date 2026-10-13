@@ -1,0 +1,6 @@
+@inject NavigationManager Nav
+
+<PageTitle>Écran à migrer – DGsys</PageTitle>
+<PageHeader Title="Écran à migrer" Subtitle="Cet écran n'a pas encore été reconstruit en Blazor." />
+<p class="muted">Chemin demandé : <code>@("/" + Nav.ToBaseRelativePath(Nav.Uri))</code></p>
+<p><a class="btn btn--outline" href="/clients">Retour à l'accueil</a></p>
