@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // F5 : lance l'hôte web et ouvre le navigateur avec points d'arrêt dans les .razor/.cs
+      "name": "Web (Blazor WebAssembly)",
+      "type": "blazorwasm",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/src/DGsys.Web",
+      "url": "http://localhost:5080",
+      "browser": "edge"
+    },
+    {
+      // Hôte desktop WPF (Windows uniquement). F12 dans la fenêtre = outils de dev du WebView.
+      "name": "Desktop (WPF)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build wpf",
+      "program": "${workspaceFolder}/src/DGsys.Wpf/bin/Debug/net8.0-windows/DGsys.Wpf.exe",
+      "cwd": "${workspaceFolder}/src/DGsys.Wpf",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  // VS Code propose d'installer ces extensions à l'ouverture du dossier.
+  "recommendations": [
+    "ms-dotnettools.csdevkit",          // C# Dev Kit : explorateur de solution, tests, IntelliSense
+    "ms-dotnettools.csharp",            // C# : langage + débogueur (dont Blazor WebAssembly)
+    "ms-dotnettools.vscode-dotnet-runtime",
+    "ms-azuretools.vscode-docker",      // Docker / docker-compose
+    "editorconfig.editorconfig"
+  ]
+}

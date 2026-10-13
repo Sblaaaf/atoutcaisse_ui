@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "detail": "Compile toute la solution",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "DGsys.sln", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "test",
+      "detail": "Lance les tests xUnit/bUnit",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["test", "tests/DGsys.UI.Tests"],
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "watch web",
+      "detail": "Hot reload : relance/rafraîchit à chaque sauvegarde (.razor, .cs, .css) – http://localhost:5080",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["watch", "--project", "src/DGsys.Web", "run"],
+      "isBackground": true,
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "build web",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "src/DGsys.Web", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary"],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "build wpf",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "src/DGsys.Wpf", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary"],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "docker up",
+      "detail": "Front web via nginx – http://localhost:8080",
+      "type": "shell",
+      "command": "docker compose up --build",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

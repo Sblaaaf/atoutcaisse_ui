@@ -1,0 +1,14 @@
+{
+  "dotnet.defaultSolution": "DGsys.sln",
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true
+  },
+  "search.exclude": {
+    "**/wwwroot/lib": true
+  },
+  "files.associations": {
+    "*.razor": "aspnetcorerazor"
+  },
+  "editor.formatOnSave": false
+}

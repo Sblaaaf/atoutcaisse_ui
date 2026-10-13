@@ -16,7 +16,10 @@ Une seule bibliothèque de composants, deux hôtes :
 
 ```bash
 # Navigateur (Linux/macOS/Windows) → http://localhost:5080
-dotnet run --project src/DGsys.Web --urls http://localhost:5080
+dotnet run --project src/DGsys.Web
+
+# Navigateur avec hot reload (rafraîchit à chaque sauvegarde)
+dotnet watch --project src/DGsys.Web run
 
 # Desktop (Windows uniquement, runtime WebView2 requis – présent par défaut sur Windows 10/11)
 dotnet run --project src/DGsys.Wpf
@@ -30,6 +33,19 @@ docker compose up --build
 ```
 
 Variables d'environnement : seulement `WEB_PORT` (port exposé par Docker, `8080` par défaut). Aucun secret n'est nécessaire pour l'instant.
+
+## Travailler dans VS Code
+
+À l'ouverture du dossier, VS Code propose les extensions recommandées (`.vscode/extensions.json`) : accepte, surtout **C# Dev Kit**.
+
+| Action | Comment |
+|---|---|
+| Lancer + déboguer le web | `F5` → « Web (Blazor WebAssembly) » (points d'arrêt dans `.razor` / `.cs`) |
+| Lancer + déboguer le desktop | `F5` → « Desktop (WPF) » |
+| Hot reload pendant le design | `Ctrl+Maj+P` → *Tasks: Run Task* → **watch web** |
+| Compiler | `Ctrl+Maj+B` |
+| Tests | Onglet *Testing* (fiole) ou tâche **test** |
+| Docker | Tâche **docker up** |
 
 ## Écrans disponibles
 
